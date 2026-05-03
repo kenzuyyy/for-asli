@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>For Ashlee</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Lato:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #0d0008;
+    font-family: 'Lato', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    overflow-x: hidden; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 80%, rgba(180,0,60,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 35% at 80% 20%, rgba(220,80,120,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 50% at 50% 50%, rgba(100,0,40,0.10) 0%, transparent 80%);
+    pointer-events: none; z-index: 0;
+  }
+  #particles-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+  #app {
+    position: relative; z-index: 10;
+    width: 100%; max-width: 680px;
+    padding: 2rem 1.5rem;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  .screen {
+    display: none; flex-direction: column; align-items: center; gap: 1.4rem;
+    animation: fadeIn 1.2s ease both; width: 100%;
+  }
+  .screen.active { display: flex; }
+
+  .petal-icon {
+    font-size: 2.6rem;
+    animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px rgba(240,100,140,0.6));
+  }
+  .title-main {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.4rem, 4.5vw, 2rem);
+    font-weight: 700; color: #f9c4d4;
+    text-align: center; line-height: 1.3;
+    text-shadow: 0 0 30px rgba(240,80,120,0.5);
+  }
+  .subtitle {
+    font-size: 0.88rem; color: rgba(240,180,200,0.5);
+    font-style: italic; letter-spacing: 0.06em; text-align: center;
+  }
+
+  /* ── CALENDAR ── */
+  .calendar-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+    width: 100%; max-width: 340px;
+  }
+  .cal-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; gap: 0.5rem;
+  }
+  .cal-nav-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(240,100,140,0.25); border-radius: 8px;
+    color: #f48fb1; font-size: 1.1rem; width: 36px; height: 36px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .cal-nav-btn:hover { background: rgba(240,100,140,0.1); border-color: rgba(240,100,140,0.5); }
+  .cal-header-selects { display: flex; gap: 0.5rem; align-items: center; }
+  .cal-select {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(240,100,140,0.25); border-radius: 8px;
+    color: #f9c4d4; font-family: 'Playfair Display', serif; font-size: 0.9rem;
+    padding: 0.3rem 0.5rem; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none; text-align: center;
+  }
+  .cal-select option { background: #1a0010; color: #f9c4d4; }
+  .cal-grid {
+    width: 100%; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  }
+  .cal-day-name {
+    text-align: center; font-size: 0.7rem; letter-spacing: 0.08em;
+    color: rgba(240,150,180,0.45); padding: 4px 0 6px; text-transform: uppercase;
+  }
+  .cal-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 0.82rem; color: rgba(248,187,208,0.7); border-radius: 50%;
+    cursor: pointer; border: 1px solid transparent; user-select: none;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+  }
+  .cal-day:hover:not(.empty):not(.future) {
+    background: rgba(240,100,140,0.15); border-color: rgba(240,100,140,0.35);
+    color: #f9c4d4; transform: scale(1.12);
+  }
+  .cal-day.selected {
+    background: linear-gradient(135deg,#c2185b,#e91e63);
+    color: #fff; font-weight: 700;
+    box-shadow: 0 2px 12px rgba(194,24,91,0.45); transform: scale(1.1);
+  }
+  .cal-day.today { border-color: rgba(240,100,140,0.45); color: #f48fb1; }
+  .cal-day.future { color: rgba(240,150,180,0.2); cursor: default; }
+  .cal-day.empty { cursor: default; }
+
+  .error-msg {
+    font-size: 0.82rem; color: #ff6b8a; min-height: 1.1em;
+    text-align: center; font-style: italic;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .error-msg.visible { opacity: 1; }
+
+  .action-btn {
+    background: linear-gradient(135deg,#c2185b,#e91e63,#f06292);
+    border: none; border-radius: 50px; padding: 0.85rem 2.4rem;
+    font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic;
+    color: #fff; cursor: pointer; letter-spacing: 0.04em;
+    transition: transform 0.2s, box-shadow 0.3s;
+    box-shadow: 0 4px 24px rgba(194,24,91,0.4);
+  }
+  .action-btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 8px 32px rgba(194,24,91,0.55); }
+  .action-btn:active { transform: scale(0.98); }
+
+  /* ── SCENE ── */
+  #flower-stage { width: 100%; max-width: 680px; height: 300px; position: relative; }
+  #flower-canvas { width: 100%; height: 100%; display: block; }
+
+  .scene-bottom {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 1rem; padding-top: 1rem; width: 100%;
+  }
+
+  .result-msg {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1rem, 3.2vw, 1.4rem);
+    font-weight: 700; font-style: italic; color: #f8bbd0;
+    text-align: center; line-height: 1.5;
+    text-shadow: 0 0 40px rgba(240,100,140,0.5);
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 1.2s ease 0.4s, transform 1.2s ease 0.4s;
+  }
+  .result-msg.visible { opacity: 1; transform: translateY(0); }
+
+  .divider {
+    width: 60px; height: 1px;
+    background: linear-gradient(90deg,transparent,rgba(240,100,140,0.45),transparent);
+    opacity: 0; transition: opacity 1.2s ease 0.9s;
+  }
+  .divider.visible { opacity: 1; }
+
+  .days-badge {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(240,100,140,0.22); border-radius: 100px;
+    padding: 0.45rem 1.4rem; font-size: 0.82rem;
+    letter-spacing: 0.1em; color: rgba(248,187,200,0.65);
+    text-align: center; opacity: 0; transition: opacity 1.2s ease 1.4s;
+  }
+  .days-badge.visible { opacity: 1; }
+  .days-count { color: #f48fb1; font-weight: 700; font-family: 'Playfair Display', serif; font-size: 1.05em; }
+
+  /* ── VIDEO BUTTON ── */
+  .video-reveal {
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 1.4s ease 2.6s, transform 1.4s ease 2.6s;
+    display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+  }
+  .video-reveal.visible { opacity: 1; transform: translateY(0); }
+
+  .video-hint {
+    font-size: 0.8rem; color: rgba(240,180,200,0.45);
+    font-style: italic; letter-spacing: 0.08em;
+  }
+
+  .video-btn {
+    display: flex; align-items: center; gap: 0.7rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(240,100,140,0.35); border-radius: 16px;
+    padding: 0.9rem 1.6rem; cursor: pointer;
+    text-decoration: none;
+    transition: background 0.25s, border-color 0.25s, transform 0.2s, box-shadow 0.3s;
+  }
+  .video-btn:hover {
+    background: rgba(240,100,140,0.1);
+    border-color: rgba(240,100,140,0.65);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(194,24,91,0.3);
+  }
+  .video-btn:active { transform: scale(0.98); }
+
+  .play-icon {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg,#c2185b,#e91e63);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(194,24,91,0.5);
+  }
+  .play-icon svg { width: 14px; height: 14px; fill: #fff; margin-left: 2px; }
+
+  .video-btn-text { display: flex; flex-direction: column; gap: 2px; }
+  .video-btn-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem; font-style: italic; color: #f9c4d4;
+    letter-spacing: 0.02em;
+  }
+  .video-btn-sub { font-size: 0.72rem; color: rgba(240,150,180,0.5); letter-spacing: 0.06em; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles-canvas"></canvas>
+
+<div id="app">
+
+  <!-- SCREEN 1: Ashlee guesses -->
+  <div id="guess-screen" class="screen active">
+    <div class="petal-icon">💌</div>
+    <h1 class="title-main">When did you say yes?</h1>
+    <p class="subtitle">Pick the day you said yes to me…</p>
+    <div class="calendar-wrap">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="g-prev">&#8249;</button>
+        <div class="cal-header-selects">
+          <select class="cal-select" id="g-month"></select>
+          <select class="cal-select" id="g-year"></select>
+        </div>
+        <button class="cal-nav-btn" id="g-next">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="g-grid"></div>
+    </div>
+    <p class="error-msg" id="g-error">Pick a date first, love ✦</p>
+    <button class="action-btn" id="guess-btn">That's the day! 💕</button>
+  </div>
+
+  <!-- SCREEN 2: Bloom / wrong scene -->
+  <div id="scene-screen" class="screen" style="flex-direction:column;">
+    <div id="flower-stage">
+      <canvas id="flower-canvas"></canvas>
+    </div>
+    <div class="scene-bottom">
+      <p class="result-msg" id="result-msg"></p>
+      <div class="divider" id="divider"></div>
+      <p class="days-badge" id="days-badge"></p>
+
+      <!-- Video button — only shown on correct guess -->
+      <div class="video-reveal" id="video-reveal">
+        <p class="video-hint">one more thing…</p>
+        <a
+          class="video-btn"
+          href="https://drive.google.com/file/d/1aIEGUhW6xkrfHcTLcinR-bBO6DZKbsrf/view"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <div class="play-icon">
+            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 2l10 6-10 6V2z"/>
+            </svg>
+          </div>
+          <div class="video-btn-text">
+            <span class="video-btn-title">I have something for you 🎥</span>
+            <span class="video-btn-sub">a message from my heart</span>
+          </div>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════
+//  SECRET DATE
+// ══════════════════════════════
+const SECRET = new Date(2023, 4, 4); // May 4, 2023
+
+// ══════════════════════════════
+//  PARTICLES
+// ══════════════════════════════
+const pCanvas = document.getElementById('particles-canvas');
+const pCtx = pCanvas.getContext('2d');
+let allParticles = [], particlesFull = false;
+
+function resizePC() { pCanvas.width = innerWidth; pCanvas.height = innerHeight; }
+resizePC(); addEventListener('resize', resizePC);
+
+class Particle {
+  constructor(initial) { this.reset(initial); }
+  reset(initial) {
+    this.x = Math.random() * pCanvas.width;
+    this.y = initial ? Math.random() * pCanvas.height : pCanvas.height + 20;
+    this.size = Math.random() * 10 + 5;
+    this.vy = Math.random() * 0.7 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.5;
+    this.opacity = Math.random() * 0.45 + 0.15;
+    this.fd = Math.random() > 0.5 ? 1 : -1;
+    this.color = ['#f48fb1','#f06292','#e91e63','#ff80ab','#fce4ec','#ff4081'][Math.floor(Math.random()*6)];
+    this.rot = Math.random() * Math.PI * 2;
+    this.rs = (Math.random() - 0.5) * 0.04;
+    this.heart = Math.random() > 0.35;
+  }
+  drawHeart(c) {
+    c.save(); c.translate(this.x, this.y); c.rotate(this.rot);
+    c.beginPath();
+    const s = this.size * 0.055;
+    for (let t = 0; t < Math.PI*2; t += 0.05) {
+      const hx = s*16*Math.pow(Math.sin(t),3);
+      const hy = -s*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+      t===0 ? c.moveTo(hx,hy) : c.lineTo(hx,hy);
+    }
+    c.closePath(); c.fillStyle=this.color; c.globalAlpha=this.opacity; c.fill(); c.restore();
+  }
+  drawPetal(c) {
+    c.save(); c.translate(this.x,this.y); c.rotate(this.rot);
+    c.beginPath(); c.ellipse(0,-this.size*0.5,this.size*0.28,this.size*0.55,0,0,Math.PI*2);
+    c.fillStyle=this.color; c.globalAlpha=this.opacity*0.7; c.fill(); c.restore();
+  }
+  update(c) {
+    this.y-=this.vy; this.x+=this.vx; this.rot+=this.rs;
+    this.opacity+=this.fd*0.004;
+    if(this.opacity>0.65) this.fd=-1;
+    if(this.opacity<0.08) this.fd=1;
+    if(this.y<-30) this.reset(false);
+    this.heart ? this.drawHeart(c) : this.drawPetal(c);
+  }
+}
+
+const ambientP = Array.from({length:14}, ()=>new Particle(true));
+(function ambientLoop() {
+  if(particlesFull) return;
+  pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+  ambientP.forEach(p=>p.update(pCtx));
+  requestAnimationFrame(ambientLoop);
+})();
+
+function initFullParticles() {
+  allParticles = Array.from({length:55}, ()=>new Particle(true));
+  particlesFull = true;
+  (function loop() {
+    pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+    allParticles.forEach(p=>p.update(pCtx));
+    requestAnimationFrame(loop);
+  })();
+}
+
+// ══════════════════════════════
+//  CALENDAR
+// ══════════════════════════════
+const MONTHS = ['January','February','March','April','May','June',
+  'July','August','September','October','November','December'];
+const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function buildCalendar({monthSel,yearSel,prevBtn,nextBtn,gridEl,onSelect}) {
+  let curYear = SECRET.getFullYear();
+  let curMonth = SECRET.getMonth();
+  let selected = null;
+  const today = new Date();
+
+  MONTHS.forEach((m,i)=>{
+    const o=document.createElement('option');
+    o.value=i; o.textContent=m; monthSel.appendChild(o);
+  });
+  monthSel.value=curMonth;
+
+  for(let y=today.getFullYear(); y>=1990; y--){
+    const o=document.createElement('option');
+    o.value=y; o.textContent=y; yearSel.appendChild(o);
+  }
+  yearSel.value=curYear;
+
+  function render() {
+    gridEl.innerHTML='';
+    DAYS.forEach(d=>{
+      const el=document.createElement('div');
+      el.className='cal-day-name'; el.textContent=d; gridEl.appendChild(el);
+    });
+    const firstDay=new Date(curYear,curMonth,1).getDay();
+    const dim=new Date(curYear,curMonth+1,0).getDate();
+    for(let i=0;i<firstDay;i++){
+      const el=document.createElement('div'); el.className='cal-day empty'; gridEl.appendChild(el);
+    }
+    for(let d=1;d<=dim;d++){
+      const el=document.createElement('div');
+      el.className='cal-day'; el.textContent=d;
+      const td=new Date(curYear,curMonth,d);
+      const isFuture=td>today;
+      const isToday=td.toDateString()===today.toDateString();
+      const isSel=selected&&
+        td.getFullYear()===selected.getFullYear()&&
+        td.getMonth()===selected.getMonth()&&
+        td.getDate()===selected.getDate();
+      if(isToday) el.classList.add('today');
+      if(isFuture) el.classList.add('future');
+      if(isSel) el.classList.add('selected');
+      if(!isFuture){
+        el.addEventListener('click',()=>{
+          selected=new Date(curYear,curMonth,d);
+          onSelect(selected); render();
+        });
+      }
+      gridEl.appendChild(el);
+    }
+  }
+
+  function go(dir){
+    curMonth+=dir;
+    if(curMonth>11){curMonth=0;curYear++;}
+    if(curMonth<0){curMonth=11;curYear--;}
+    monthSel.value=curMonth; yearSel.value=curYear; render();
+  }
+
+  prevBtn.addEventListener('click',()=>go(-1));
+  nextBtn.addEventListener('click',()=>go(1));
+  monthSel.addEventListener('change',()=>{curMonth=+monthSel.value;render();});
+  yearSel.addEventListener('change',()=>{curYear=+yearSel.value;render();});
+  render();
+  return {getSelected:()=>selected};
+}
+
+// ══════════════════════════════
+//  FLOWERS
+// ══════════════════════════════
+const fCanvas=document.getElementById('flower-canvas');
+const ctx=fCanvas.getContext('2d');
+let flowers=[], sceneRunning=false;
+
+const FDEFS=[[0.12,0.88,0.75,0],[0.30,0.78,0.95,350],[0.50,0.70,1.15,700],[0.70,0.78,0.95,1050],[0.88,0.88,0.75,1400]];
+
+class Flower {
+  constructor(cx,cy,scale,delay,wilted=false){
+    this.cx=cx;this.cy=cy;this.scale=scale;this.wilted=wilted;
+    this.progress=0;this.active=false;
+    this.sway=0;this.swaySpeed=(Math.random()-0.5)*0.008;
+    setTimeout(()=>{this.active=true;},delay);
+  }
+  update(){
+    if(this.active&&this.progress<1) this.progress=Math.min(1,this.progress+0.022);
+    this.sway+=this.swaySpeed;
+    if(Math.abs(this.sway)>0.06) this.swaySpeed*=-1;
+  }
+  draw(c){
+    if(!this.active&&this.progress===0) return;
+    const {cx,cy,scale:s,progress:p,sway,wilted}=this;
+    const c1=wilted?'#7b1fa2':'#e53935', c2=wilted?'#ce93d8':'#f06292';
+    const c3=wilted?'#9c27b0':'#e91e63', c4=wilted?'#e1bee7':'#f8bbd0';
+    c.save(); c.translate(cx,cy);
+    c.save(); c.strokeStyle=wilted?'#4a4a2a':'#2e7d32';
+    c.lineWidth=Math.max(2,3.5*s); c.lineCap='round';
+    c.beginPath(); c.moveTo(0,0);
+    const droop=wilted?sway*60*s:sway*30*s;
+    c.quadraticCurveTo(droop,40*s,droop*0.4,80*s*p);
+    c.stroke(); c.restore();
+    if(p<0.15){c.restore();return;}
+    const lp=Math.max(0,(p-0.3)/0.7);
+    if(lp>0){
+      c.save(); c.translate(sway*15*s,50*s*p); c.scale(lp*s,lp*s);
+      c.fillStyle=wilted?'#5d4037':'#388e3c';
+      c.beginPath(); c.moveTo(0,0);
+      c.bezierCurveTo(-22,-8,-30,12,-18,18); c.bezierCurveTo(-10,22,0,14,0,0);
+      c.fill(); c.restore();
+      c.save(); c.translate(sway*8*s,62*s*p); c.scale(lp*s,lp*s);
+      c.fillStyle=wilted?'#5d4037':'#388e3c';
+      c.beginPath(); c.moveTo(0,0);
+      c.bezierCurveTo(22,-8,30,12,18,18); c.bezierCurveTo(10,22,0,14,0,0);
+      c.fill(); c.restore();
+    }
+    c.translate(sway*10*s,0);
+    const ps=wilted?0.6:1;
+    this._petals(c,6,28*s*ps,11*s*ps,p,c1,c2,0);
+    this._petals(c,6,22*s*ps,9*s*ps,p,c3,c4,30);
+    this._petals(c,5,15*s*ps,7*s*ps,p,c1,c2,18);
+    const cr=9*s*ps*Math.min(1,p*1.4);
+    const grd=c.createRadialGradient(0,0,0,0,0,cr);
+    if(wilted){grd.addColorStop(0,'#fff9c4');grd.addColorStop(0.5,'#bcaaa4');grd.addColorStop(1,'#795548');}
+    else{grd.addColorStop(0,'#fff9c4');grd.addColorStop(0.5,'#ffd54f');grd.addColorStop(1,'#ff8f00');}
+    c.beginPath(); c.arc(0,0,cr,0,Math.PI*2); c.fillStyle=grd; c.fill();
+    c.restore();
+  }
+  _petals(c,n,len,w,p,col1,col2,offset){
+    for(let i=0;i<n;i++){
+      const angle=((360/n)*i+offset)*Math.PI/180;
+      c.save(); c.rotate(angle); c.translate(len*0.3*p,0);
+      const l=len*p,hw=w*p*0.5;
+      const grd=c.createLinearGradient(0,0,l,0);
+      grd.addColorStop(0,col1); grd.addColorStop(1,col2);
+      c.beginPath(); c.moveTo(0,0);
+      c.bezierCurveTo(l*0.3,-hw*1.2,l*0.7,-hw,l,0);
+      c.bezierCurveTo(l*0.7,hw,l*0.3,hw*1.2,0,0);
+      c.fillStyle=grd; c.globalAlpha=0.92; c.fill();
+      c.strokeStyle=col1; c.lineWidth=0.5; c.globalAlpha=0.4; c.stroke();
+      c.restore();
+    }
+  }
+}
+
+function buildFlowers(wilted=false){
+  const stage=document.getElementById('flower-stage');
+  fCanvas.width=stage.clientWidth; fCanvas.height=stage.clientHeight;
+  const W=fCanvas.width,H=fCanvas.height;
+  flowers=FDEFS.map(([px,py,sc,dl])=>new Flower(W*px,H*py,sc,dl,wilted));
+}
+
+function drawGarden(){
+  if(!sceneRunning) return;
+  const W=fCanvas.width,H=fCanvas.height;
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,H*0.65,0,H);
+  g.addColorStop(0,'rgba(180,0,60,0.0)'); g.addColorStop(1,'rgba(180,0,60,0.08)');
+  ctx.fillStyle=g; ctx.fillRect(0,H*0.65,W,H*0.35);
+  flowers.forEach(f=>{f.update();f.draw(ctx);});
+  requestAnimationFrame(drawGarden);
+}
+
+// ══════════════════════════════
+//  FLOW
+// ══════════════════════════════
+function switchTo(id){
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.style.transition='opacity 0.6s ease, transform 0.6s ease';
+    s.style.opacity='0'; s.style.transform='scale(0.96)';
+    setTimeout(()=>{s.classList.remove('active');s.style.opacity='';s.style.transform='';},620);
+  });
+  setTimeout(()=>document.getElementById(id).classList.add('active'),640);
+}
+
+const guessCal=buildCalendar({
+  monthSel:document.getElementById('g-month'),
+  yearSel:document.getElementById('g-year'),
+  prevBtn:document.getElementById('g-prev'),
+  nextBtn:document.getElementById('g-next'),
+  gridEl:document.getElementById('g-grid'),
+  onSelect:()=>document.getElementById('g-error').classList.remove('visible')
+});
+
+document.getElementById('guess-btn').addEventListener('click',()=>{
+  const guess=guessCal.getSelected();
+  if(!guess){document.getElementById('g-error').classList.add('visible');return;}
+
+  const correct=
+    guess.getFullYear()===SECRET.getFullYear()&&
+    guess.getMonth()===SECRET.getMonth()&&
+    guess.getDate()===SECRET.getDate();
+
+  switchTo('scene-screen');
+
+  setTimeout(()=>{
+    sceneRunning=true;
+    buildFlowers(!correct);
+    drawGarden();
+
+    const resultEl=document.getElementById('result-msg');
+    const daysEl=document.getElementById('days-badge');
+    const dividerEl=document.getElementById('divider');
+    const videoEl=document.getElementById('video-reveal');
+
+    if(correct){
+      initFullParticles();
+      setTimeout(()=>{
+        resultEl.innerHTML='🌸 You remembered! I love you always and in all ways, my Ashlee! 🌸';
+        resultEl.classList.add('visible');
+        dividerEl.classList.add('visible');
+      },1200);
+      const days=Math.floor((new Date()-SECRET)/86400000);
+      const fmt=SECRET.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+      daysEl.innerHTML=`Since <strong>${fmt}</strong> — <span class="days-count">${days.toLocaleString()} days</span> of pure love 💕`;
+      setTimeout(()=>daysEl.classList.add('visible'),2200);
+      // Video button fades in last
+      setTimeout(()=>videoEl.classList.add('visible'),3600);
+    } else {
+      setTimeout(()=>{
+        resultEl.style.color='#ce93d8';
+        resultEl.innerHTML='Not quite, my love 🥀 But I still love you always and in all ways!<br><br><a href="#" id="try-again" style="color:#f48fb1;font-size:0.88rem;letter-spacing:0.08em;text-decoration:underline;font-style:normal;">← Try again</a>';
+        resultEl.classList.add('visible');
+        document.getElementById('try-again').addEventListener('click',e=>{e.preventDefault();location.reload();});
+      },1200);
+    }
+  },700);
+});
+</script>
+</body>
+</html>
