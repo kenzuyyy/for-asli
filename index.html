@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>For Ashlee</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>For Ashlee · Always and in all ways</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Lato:wght@300;400&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,7 +53,7 @@
     font-style: italic; letter-spacing: 0.06em; text-align: center;
   }
 
-  /* ── CALENDAR ── */
+  /* ── CALENDAR (all numbers clickable) ── */
   .calendar-wrap {
     display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
     width: 100%; max-width: 340px;
@@ -92,7 +92,7 @@
     cursor: pointer; border: 1px solid transparent; user-select: none;
     transition: background 0.15s, color 0.15s, transform 0.15s;
   }
-  .cal-day:hover:not(.empty):not(.future) {
+  .cal-day:hover:not(.empty) {
     background: rgba(240,100,140,0.15); border-color: rgba(240,100,140,0.35);
     color: #f9c4d4; transform: scale(1.12);
   }
@@ -102,8 +102,7 @@
     box-shadow: 0 2px 12px rgba(194,24,91,0.45); transform: scale(1.1);
   }
   .cal-day.today { border-color: rgba(240,100,140,0.45); color: #f48fb1; }
-  .cal-day.future { color: rgba(240,150,180,0.2); cursor: default; }
-  .cal-day.empty { cursor: default; }
+  .cal-day.empty { cursor: default; background: none; }
 
   .error-msg {
     font-size: 0.82rem; color: #ff6b8a; min-height: 1.1em;
@@ -123,7 +122,7 @@
   .action-btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 8px 32px rgba(194,24,91,0.55); }
   .action-btn:active { transform: scale(0.98); }
 
-  /* ── SCENE ── */
+  /* ── FLOWER SCENE ── */
   #flower-stage { width: 100%; max-width: 680px; height: 300px; position: relative; }
   #flower-canvas { width: 100%; height: 100%; display: block; }
 
@@ -160,7 +159,7 @@
   .days-badge.visible { opacity: 1; }
   .days-count { color: #f48fb1; font-weight: 700; font-family: 'Playfair Display', serif; font-size: 1.05em; }
 
-  /* ── VIDEO BUTTON ── */
+  /* ── VIDEO BUTTON (correct only) ── */
   .video-reveal {
     opacity: 0; transform: translateY(16px);
     transition: opacity 1.4s ease 2.6s, transform 1.4s ease 2.6s;
@@ -222,7 +221,7 @@
 
 <div id="app">
 
-  <!-- SCREEN 1: Ashlee guesses -->
+  <!-- SCREEN 1: Guess the date (calendar starts January 2000, all dates clickable) -->
   <div id="guess-screen" class="screen active">
     <div class="petal-icon">💌</div>
     <h1 class="title-main">When did you say yes?</h1>
@@ -242,7 +241,7 @@
     <button class="action-btn" id="guess-btn">That's the day! 💕</button>
   </div>
 
-  <!-- SCREEN 2: Bloom / wrong scene -->
+  <!-- SCREEN 2: Bloom or wilted + video for correct guess -->
   <div id="scene-screen" class="screen" style="flex-direction:column;">
     <div id="flower-stage">
       <canvas id="flower-canvas"></canvas>
@@ -252,7 +251,7 @@
       <div class="divider" id="divider"></div>
       <p class="days-badge" id="days-badge"></p>
 
-      <!-- Video button — only shown on correct guess -->
+      <!-- Hidden video button – appears only on correct answer -->
       <div class="video-reveal" id="video-reveal">
         <p class="video-hint">one more thing…</p>
         <a
@@ -279,14 +278,14 @@
 </div>
 
 <script>
-// ══════════════════════════════
-//  SECRET DATE
-// ══════════════════════════════
-const SECRET = new Date(2023, 4, 4); // May 4, 2023
+// ═══════════════════════════════════════════════════════════
+//  SECRET DATE — May 4, 2023 (never changes)
+// ═══════════════════════════════════════════════════════════
+const SECRET = new Date(2023, 4, 4);   // May 4, 2023
 
-// ══════════════════════════════
-//  PARTICLES
-// ══════════════════════════════
+// ═══════════════════════════════════════════════════════════
+//  FLOATING PARTICLES (petals & hearts)
+// ═══════════════════════════════════════════════════════════
 const pCanvas = document.getElementById('particles-canvas');
 const pCtx = pCanvas.getContext('2d');
 let allParticles = [], particlesFull = false;
@@ -353,26 +352,31 @@ function initFullParticles() {
   })();
 }
 
-// ══════════════════════════════
-//  CALENDAR
-// ══════════════════════════════
+// ═══════════════════════════════════════════════════════════
+//  CALENDAR — default: January 2000 , ALL DAYS CLICKABLE (no future lock)
+//  Secret remains May 4, 2023
+// ═══════════════════════════════════════════════════════════
 const MONTHS = ['January','February','March','April','May','June',
   'July','August','September','October','November','December'];
 const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
 function buildCalendar({monthSel,yearSel,prevBtn,nextBtn,gridEl,onSelect}) {
-  let curYear = SECRET.getFullYear();
-  let curMonth = SECRET.getMonth();
+  // DEFAULT: January 2000 (as requested)
+  let curYear = 2000;
+  let curMonth = 0;      // January is 0
   let selected = null;
-  const today = new Date();
+  const today = new Date();  // only used for "today" highlight, no selection restriction
 
+  // populate month dropdown
   MONTHS.forEach((m,i)=>{
     const o=document.createElement('option');
     o.value=i; o.textContent=m; monthSel.appendChild(o);
   });
   monthSel.value=curMonth;
 
-  for(let y=today.getFullYear(); y>=1990; y--){
+  // populate year dropdown: from current year down to 1900 (long range)
+  const currentYear = today.getFullYear();
+  for(let y=currentYear; y>=1900; y--){
     const o=document.createElement('option');
     o.value=y; o.textContent=y; yearSel.appendChild(o);
   }
@@ -384,72 +388,89 @@ function buildCalendar({monthSel,yearSel,prevBtn,nextBtn,gridEl,onSelect}) {
       const el=document.createElement('div');
       el.className='cal-day-name'; el.textContent=d; gridEl.appendChild(el);
     });
-    const firstDay=new Date(curYear,curMonth,1).getDay();
-    const dim=new Date(curYear,curMonth+1,0).getDate();
+    const firstDay = new Date(curYear, curMonth, 1).getDay();
+    const daysInMonth = new Date(curYear, curMonth+1, 0).getDate();
+    
+    // leading empty cells
     for(let i=0;i<firstDay;i++){
       const el=document.createElement('div'); el.className='cal-day empty'; gridEl.appendChild(el);
     }
-    for(let d=1;d<=dim;d++){
+    
+    // actual days - ALL CLICKABLE (no future restriction)
+    for(let d=1; d<=daysInMonth; d++){
       const el=document.createElement('div');
-      el.className='cal-day'; el.textContent=d;
-      const td=new Date(curYear,curMonth,d);
-      const isFuture=td>today;
-      const isToday=td.toDateString()===today.toDateString();
-      const isSel=selected&&
-        td.getFullYear()===selected.getFullYear()&&
-        td.getMonth()===selected.getMonth()&&
-        td.getDate()===selected.getDate();
+      el.className='cal-day';
+      el.textContent=d;
+      const td = new Date(curYear, curMonth, d);
+      const isToday = td.toDateString() === today.toDateString();
+      const isSel = selected && 
+        td.getFullYear() === selected.getFullYear() &&
+        td.getMonth() === selected.getMonth() &&
+        td.getDate() === selected.getDate();
+      
       if(isToday) el.classList.add('today');
-      if(isFuture) el.classList.add('future');
       if(isSel) el.classList.add('selected');
-      if(!isFuture){
-        el.addEventListener('click',()=>{
-          selected=new Date(curYear,curMonth,d);
-          onSelect(selected); render();
-        });
-      }
+      
+      // make every single day clickable (no future/past distinction)
+      el.addEventListener('click', (function(dateObj) {
+        return function() {
+          selected = dateObj;
+          onSelect(selected);
+          render();
+        };
+      })(new Date(curYear, curMonth, d)));
+      
       gridEl.appendChild(el);
     }
   }
 
   function go(dir){
-    curMonth+=dir;
-    if(curMonth>11){curMonth=0;curYear++;}
-    if(curMonth<0){curMonth=11;curYear--;}
-    monthSel.value=curMonth; yearSel.value=curYear; render();
+    curMonth += dir;
+    if(curMonth > 11){ curMonth = 0; curYear++; }
+    if(curMonth < 0){ curMonth = 11; curYear--; }
+    monthSel.value = curMonth;
+    yearSel.value = curYear;
+    render();
   }
 
-  prevBtn.addEventListener('click',()=>go(-1));
-  nextBtn.addEventListener('click',()=>go(1));
-  monthSel.addEventListener('change',()=>{curMonth=+monthSel.value;render();});
-  yearSel.addEventListener('change',()=>{curYear=+yearSel.value;render();});
+  prevBtn.addEventListener('click', () => go(-1));
+  nextBtn.addEventListener('click', () => go(1));
+  monthSel.addEventListener('change', () => {
+    curMonth = +monthSel.value;
+    render();
+  });
+  yearSel.addEventListener('change', () => {
+    curYear = +yearSel.value;
+    render();
+  });
+  
   render();
-  return {getSelected:()=>selected};
+  return { getSelected: () => selected };
 }
 
-// ══════════════════════════════
-//  FLOWERS
-// ══════════════════════════════
-const fCanvas=document.getElementById('flower-canvas');
-const ctx=fCanvas.getContext('2d');
-let flowers=[], sceneRunning=false;
+// ═══════════════════════════════════════════════════════════
+//  FLOWER ANIMATION (full bloom vs wilted)
+// ═══════════════════════════════════════════════════════════
+const fCanvas = document.getElementById('flower-canvas');
+const ctx = fCanvas.getContext('2d');
+let flowers = [], sceneRunning = false;
 
-const FDEFS=[[0.12,0.88,0.75,0],[0.30,0.78,0.95,350],[0.50,0.70,1.15,700],[0.70,0.78,0.95,1050],[0.88,0.88,0.75,1400]];
+const FDEFS = [[0.12,0.88,0.75,0],[0.30,0.78,0.95,350],[0.50,0.70,1.15,700],[0.70,0.78,0.95,1050],[0.88,0.88,0.75,1400]];
 
 class Flower {
   constructor(cx,cy,scale,delay,wilted=false){
-    this.cx=cx;this.cy=cy;this.scale=scale;this.wilted=wilted;
-    this.progress=0;this.active=false;
-    this.sway=0;this.swaySpeed=(Math.random()-0.5)*0.008;
-    setTimeout(()=>{this.active=true;},delay);
+    this.cx=cx; this.cy=cy; this.scale=scale; this.wilted=wilted;
+    this.progress=0; this.active=false;
+    this.sway=0; this.swaySpeed=(Math.random()-0.5)*0.008;
+    setTimeout(()=>{ this.active=true; }, delay);
   }
   update(){
-    if(this.active&&this.progress<1) this.progress=Math.min(1,this.progress+0.022);
-    this.sway+=this.swaySpeed;
-    if(Math.abs(this.sway)>0.06) this.swaySpeed*=-1;
+    if(this.active && this.progress<1) this.progress = Math.min(1, this.progress+0.022);
+    this.sway += this.swaySpeed;
+    if(Math.abs(this.sway)>0.06) this.swaySpeed *= -1;
   }
   draw(c){
-    if(!this.active&&this.progress===0) return;
+    if(!this.active && this.progress===0) return;
     const {cx,cy,scale:s,progress:p,sway,wilted}=this;
     const c1=wilted?'#7b1fa2':'#e53935', c2=wilted?'#ce93d8':'#f06292';
     const c3=wilted?'#9c27b0':'#e91e63', c4=wilted?'#e1bee7':'#f8bbd0';
@@ -460,7 +481,7 @@ class Flower {
     const droop=wilted?sway*60*s:sway*30*s;
     c.quadraticCurveTo(droop,40*s,droop*0.4,80*s*p);
     c.stroke(); c.restore();
-    if(p<0.15){c.restore();return;}
+    if(p<0.15){ c.restore(); return; }
     const lp=Math.max(0,(p-0.3)/0.7);
     if(lp>0){
       c.save(); c.translate(sway*15*s,50*s*p); c.scale(lp*s,lp*s);
@@ -481,8 +502,8 @@ class Flower {
     this._petals(c,5,15*s*ps,7*s*ps,p,c1,c2,18);
     const cr=9*s*ps*Math.min(1,p*1.4);
     const grd=c.createRadialGradient(0,0,0,0,0,cr);
-    if(wilted){grd.addColorStop(0,'#fff9c4');grd.addColorStop(0.5,'#bcaaa4');grd.addColorStop(1,'#795548');}
-    else{grd.addColorStop(0,'#fff9c4');grd.addColorStop(0.5,'#ffd54f');grd.addColorStop(1,'#ff8f00');}
+    if(wilted){ grd.addColorStop(0,'#fff9c4'); grd.addColorStop(0.5,'#bcaaa4'); grd.addColorStop(1,'#795548'); }
+    else{ grd.addColorStop(0,'#fff9c4'); grd.addColorStop(0.5,'#ffd54f'); grd.addColorStop(1,'#ff8f00'); }
     c.beginPath(); c.arc(0,0,cr,0,Math.PI*2); c.fillStyle=grd; c.fill();
     c.restore();
   }
@@ -490,7 +511,7 @@ class Flower {
     for(let i=0;i<n;i++){
       const angle=((360/n)*i+offset)*Math.PI/180;
       c.save(); c.rotate(angle); c.translate(len*0.3*p,0);
-      const l=len*p,hw=w*p*0.5;
+      const l=len*p, hw=w*p*0.5;
       const grd=c.createLinearGradient(0,0,l,0);
       grd.addColorStop(0,col1); grd.addColorStop(1,col2);
       c.beginPath(); c.moveTo(0,0);
@@ -504,87 +525,93 @@ class Flower {
 }
 
 function buildFlowers(wilted=false){
-  const stage=document.getElementById('flower-stage');
-  fCanvas.width=stage.clientWidth; fCanvas.height=stage.clientHeight;
-  const W=fCanvas.width,H=fCanvas.height;
-  flowers=FDEFS.map(([px,py,sc,dl])=>new Flower(W*px,H*py,sc,dl,wilted));
+  const stage = document.getElementById('flower-stage');
+  fCanvas.width = stage.clientWidth;
+  fCanvas.height = stage.clientHeight;
+  const W = fCanvas.width, H = fCanvas.height;
+  flowers = FDEFS.map(([px,py,sc,dl]) => new Flower(W*px, H*py, sc, dl, wilted));
 }
 
 function drawGarden(){
   if(!sceneRunning) return;
-  const W=fCanvas.width,H=fCanvas.height;
+  const W = fCanvas.width, H = fCanvas.height;
   ctx.clearRect(0,0,W,H);
-  const g=ctx.createLinearGradient(0,H*0.65,0,H);
+  const g = ctx.createLinearGradient(0,H*0.65,0,H);
   g.addColorStop(0,'rgba(180,0,60,0.0)'); g.addColorStop(1,'rgba(180,0,60,0.08)');
   ctx.fillStyle=g; ctx.fillRect(0,H*0.65,W,H*0.35);
-  flowers.forEach(f=>{f.update();f.draw(ctx);});
+  flowers.forEach(f=>{ f.update(); f.draw(ctx); });
   requestAnimationFrame(drawGarden);
 }
 
-// ══════════════════════════════
-//  FLOW
-// ══════════════════════════════
+// ═══════════════════════════════════════════════════════════
+//  SCREEN TRANSITION & GUESS EVALUATION
+// ═══════════════════════════════════════════════════════════
 function switchTo(id){
   document.querySelectorAll('.screen').forEach(s=>{
     s.style.transition='opacity 0.6s ease, transform 0.6s ease';
     s.style.opacity='0'; s.style.transform='scale(0.96)';
-    setTimeout(()=>{s.classList.remove('active');s.style.opacity='';s.style.transform='';},620);
+    setTimeout(()=>{ s.classList.remove('active'); s.style.opacity=''; s.style.transform=''; },620);
   });
-  setTimeout(()=>document.getElementById(id).classList.add('active'),640);
+  setTimeout(()=> document.getElementById(id).classList.add('active'), 640);
 }
 
-const guessCal=buildCalendar({
-  monthSel:document.getElementById('g-month'),
-  yearSel:document.getElementById('g-year'),
-  prevBtn:document.getElementById('g-prev'),
-  nextBtn:document.getElementById('g-next'),
-  gridEl:document.getElementById('g-grid'),
-  onSelect:()=>document.getElementById('g-error').classList.remove('visible')
+// Build calendar (starts Jan 2000, every day clickable)
+const guessCal = buildCalendar({
+  monthSel: document.getElementById('g-month'),
+  yearSel: document.getElementById('g-year'),
+  prevBtn: document.getElementById('g-prev'),
+  nextBtn: document.getElementById('g-next'),
+  gridEl: document.getElementById('g-grid'),
+  onSelect: () => document.getElementById('g-error').classList.remove('visible')
 });
 
-document.getElementById('guess-btn').addEventListener('click',()=>{
-  const guess=guessCal.getSelected();
-  if(!guess){document.getElementById('g-error').classList.add('visible');return;}
+document.getElementById('guess-btn').addEventListener('click', () => {
+  const guess = guessCal.getSelected();
+  if(!guess){
+    document.getElementById('g-error').classList.add('visible');
+    return;
+  }
 
-  const correct=
-    guess.getFullYear()===SECRET.getFullYear()&&
-    guess.getMonth()===SECRET.getMonth()&&
-    guess.getDate()===SECRET.getDate();
+  // Compare with secret (May 4, 2023)
+  const correct = 
+    guess.getFullYear() === SECRET.getFullYear() &&
+    guess.getMonth() === SECRET.getMonth() &&
+    guess.getDate() === SECRET.getDate();
 
   switchTo('scene-screen');
 
-  setTimeout(()=>{
-    sceneRunning=true;
+  setTimeout(() => {
+    sceneRunning = true;
     buildFlowers(!correct);
     drawGarden();
 
-    const resultEl=document.getElementById('result-msg');
-    const daysEl=document.getElementById('days-badge');
-    const dividerEl=document.getElementById('divider');
-    const videoEl=document.getElementById('video-reveal');
+    const resultEl = document.getElementById('result-msg');
+    const daysEl = document.getElementById('days-badge');
+    const dividerEl = document.getElementById('divider');
+    const videoEl = document.getElementById('video-reveal');
 
     if(correct){
-      initFullParticles();
-      setTimeout(()=>{
-        resultEl.innerHTML='🌸 You remembered! I love you always and in all ways, my Ashlee! 🌸';
+      initFullParticles();  // burst of petals & hearts
+      setTimeout(() => {
+        resultEl.innerHTML = '🌸 You remembered! I love you always and in all ways, my Ashlee! 🌸';
         resultEl.classList.add('visible');
         dividerEl.classList.add('visible');
-      },1200);
-      const days=Math.floor((new Date()-SECRET)/86400000);
-      const fmt=SECRET.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-      daysEl.innerHTML=`Since <strong>${fmt}</strong> — <span class="days-count">${days.toLocaleString()} days</span> of pure love 💕`;
-      setTimeout(()=>daysEl.classList.add('visible'),2200);
-      // Video button fades in last
-      setTimeout(()=>videoEl.classList.add('visible'),3600);
+      }, 1200);
+      const days = Math.floor((new Date() - SECRET) / 86400000);
+      const fmt = SECRET.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+      daysEl.innerHTML = `Since <strong>${fmt}</strong> — <span class="days-count">${days.toLocaleString()} days</span> of pure love 💕`;
+      setTimeout(() => daysEl.classList.add('visible'), 2200);
+      // show video button after correct guess
+      setTimeout(() => videoEl.classList.add('visible'), 3600);
     } else {
-      setTimeout(()=>{
-        resultEl.style.color='#ce93d8';
-        resultEl.innerHTML='Not quite, my love 🥀 But I still love you always and in all ways!<br><br><a href="#" id="try-again" style="color:#f48fb1;font-size:0.88rem;letter-spacing:0.08em;text-decoration:underline;font-style:normal;">← Try again</a>';
+      setTimeout(() => {
+        resultEl.style.color = '#ce93d8';
+        resultEl.innerHTML = 'Not quite, my love 🥀 But I still love you always and in all ways!<br><br><a href="#" id="try-again" style="color:#f48fb1;font-size:0.88rem;letter-spacing:0.08em;text-decoration:underline;font-style:normal;">← Try again</a>';
         resultEl.classList.add('visible');
-        document.getElementById('try-again').addEventListener('click',e=>{e.preventDefault();location.reload();});
-      },1200);
+        document.getElementById('try-again').addEventListener('click', (e) => { e.preventDefault(); location.reload(); });
+      }, 1200);
     }
-  },700);
+  }, 700);
 });
 </script>
 </body>
